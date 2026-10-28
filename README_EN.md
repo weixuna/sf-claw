@@ -31,6 +31,34 @@ scons --board=sf32lb52_osptek -j8
 
 - `sf32lb52_osptek` custom board
 
+## Serial API Configuration
+
+Configure the API over the serial console on first use or when switching models:
+
+```text
+claw_cfg show
+claw_cfg url https://api.deepseek.com/chat/completions
+claw_cfg key sk-your-key
+claw_cfg model deepseek-chat
+claw_cfg save
+```
+
+Verify the configuration:
+
+```text
+claw_cfg show     # the key is masked; make sure it is not (not set)
+claw_ping         # check API reachability
+claw_test hello   # send one complete chat request
+```
+
+Notes:
+
+- `claw_cfg url/key/model` updates the runtime configuration and writes it to `prefdb` immediately; `claw_cfg save` saves the current values again.
+- You can also fill in API URL, API Key and Model in the Chat screen's Settings panel.
+- `claw_cfg key` stays in Finsh history; use the Chat Settings panel on production devices.
+- The API key is stored in plaintext in `prefdb`; the UI password mode only masks the display.
+- The SDK `webclient` prints request headers and POST bodies to the serial port, which may include the API key and chat content; rotate the key after debugging.
+
 ## HotUI
 
 `src/hotui/` runs a restricted QuickJS environment. The AI only sees the high-level `ui.*` API and never touches LVGL pointers.
@@ -74,11 +102,6 @@ Common serial commands:
 
 ```text
 net_test https://api.github.com/zen
-claw_cfg show
-claw_cfg url https://api.deepseek.com/chat/completions
-claw_cfg key sk-...
-claw_cfg model deepseek-chat
-claw_cfg save
 claw_ping
 claw_test hello
 claw_status

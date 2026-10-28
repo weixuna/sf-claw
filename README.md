@@ -31,6 +31,34 @@ scons --board=sf32lb52_osptek -j8
 
 - `sf32lb52_osptek` 自制板
 
+## 串口配置 API
+
+首次使用或更换模型时，通过串口配置 API：
+
+```text
+claw_cfg show
+claw_cfg url https://api.deepseek.com/chat/completions
+claw_cfg key sk-你的key
+claw_cfg model deepseek-chat
+claw_cfg save
+```
+
+验证配置：
+
+```text
+claw_cfg show     # key 只显示掩码，确认不是 (not set)
+claw_ping         # 检查 API 是否可达
+claw_test 你好    # 发起一次完整对话
+```
+
+说明：
+
+- `claw_cfg url/key/model` 会立即更新运行时配置并写入 `prefdb`，`claw_cfg save` 会再保存一次当前值。
+- 也可以在 Chat 界面的“设置”中直接填写 API URL、API Key 和 Model。
+- `claw_cfg key` 会留在 Finsh 历史里，正式设备建议使用 Chat 设置页。
+- API Key 在 `prefdb` 中是明文存储，UI 的密码模式只是显示掩码，不是加密。
+- SDK 的 `webclient` 会把请求头和 POST body 打印到串口，可能包含 API Key 和聊天内容；调试完请轮换 Key。
+
 ## HotUI
 
 `src/hotui/` 提供受限的 QuickJS 运行环境，AI 只能使用高层 `ui.*` API，不会接触 LVGL 指针。
@@ -74,11 +102,6 @@ src/rtclaw                       # 本项目 board 注入（b0、prefdb、PSRAM�
 
 ```text
 net_test https://api.github.com/zen
-claw_cfg show
-claw_cfg url https://api.deepseek.com/chat/completions
-claw_cfg key sk-...
-claw_cfg model deepseek-chat
-claw_cfg save
 claw_ping
 claw_test 你好
 claw_status
