@@ -1,12 +1,19 @@
-# 手表界面v8
+# SF32LB52-SF-Claw
 
-源码路径: example/multimedia/lvgl/watch
-这是一个基于LVGL v8实现的智能手表界面示例，包含多种交互界面和字体配置功能。该示例展示了如何使用SiFli-SDK的LVGL图形库组件构建嵌入式设备的用户界面。
-基于此示例，开发者可以构建各种智能穿戴设备的UI界面，如运动手表、健康监测设备等。
+SF32LB52 智能手表固件，基于 SiFli-SDK、RT-Thread 和 LVGL v8，集成 AI 对话、微信 ClawBot、蓝牙 PAN 联网和 HotUI 动态界面。
 
-> 本工程当前只维护 `sf32lb52_osptek` 板级配置，其他板级配置已从 `project/` 中删除。
+> 目前仅适配 `sf32lb52_osptek` 开发板。其他板级配置尚未验证，需要补充对应的 BSP 适配并上机测试后再开放。
 
-## 用法
+## 功能
+
+- **手表主界面**：LVGL v8 蜂窝菜单、表盘、聊天、微信等界面。
+- **HotUI**：通过 QuickJS 执行 AI 生成的高层 `ui.*` JavaScript，支持热重载、失败回滚、触摸和滑动手势。
+- **AI 对话**：rt-claw + DeepSeek，支持工具调用，可生成并直接运行界面。
+- **微信 ClawBot**：扫码登录、HTTPS 长轮询，聊天记录同步到手表 Chat 界面。
+- **蓝牙 PAN**：经典蓝牙网络共享，连接后生成 `b0` 网卡。
+- **本地存储**：API Key、微信 token 等保存在 `prefdb` FlashDB 分区。
+
+## 构建
 
 ```bash
 cd project
@@ -15,11 +22,22 @@ scons --board=sf32lb52_osptek -j8
 
 ## 支持的开发板
 
-- sf32lb52_osptek
+| 开发板 | 状态 |
+|---|---|
+| sf32lb52_osptek | 已适配并验证 |
+| 其他板卡 | 未验证，需要移植 BSP 后测试 |
+
+## 硬件需求
+
+- `sf32lb52_osptek` 开发板（AMOLED、触摸和 PA34 按键）
 
 ## 板级电源
 
-`src/app_utils/power_en.c` 控制 AMOLED、TF 卡、传感器 LDO 和充电器使能，仅适用于 `sf32lb52_osptek`：
+电源初始化、上电和深睡下电都由 osptek BSP 负责，应用层不再直接操作电源引脚：
+
+```text
+customer/boards/sf32lb52_osptek_base/bsp_power.c
+```
 
 | 功能 | 引脚 | 开启电平 |
 |---|---|---|
@@ -27,6 +45,24 @@ scons --board=sf32lb52_osptek -j8
 | TF 卡 | PA29 | 高 |
 | 传感器 LDO | PA11 | 高 |
 | 充电器 | PA20 | 低 |
+
+启动时 `BSP_IO_Init()` 调用 `BSP_Power_Up()` 完成初始化并上电；深睡/关机时由 PM 框架调用 `BSP_IO_Power_Down()` 关闭板级电源。
+
+> 当前未开启 `CONFIG_BSP_USING_PM`，因此深睡下电回调不会触发。需要低功耗时再启用 PM 并上机验证休眠、唤醒和关机流程。
+
+## HotUI
+
+`src/hotui/` 提供受限的 QuickJS 运行环境，AI 只能使用高层 `ui.*` API，不会接触 LVGL 指针。
+
+```text
+hot_ui status
+hot_ui stop
+hot_ui run
+hot_ui reload
+hot_ui demo static|timer|breakout|watch|2048
+```
+
+界面代码在 GUI 线程执行；语法错误不会破坏旧界面，运行时异常会回滚到上一个可用版本。
 
 ## 蓝牙 PAN
 
@@ -39,7 +75,7 @@ bt_pan del_bond
 bt_pan auto 0|1
 ```
 
-手机打开蓝牙网络共享后，串口应出现 `[bt_pan] pan connect successed`，执行 `ifconfig` 可查看 `b0` 的 IP。详细说明见 `src/net/README.md`。
+手机打开蓝牙网络共享后，串口应出现 `[bt_pan] pan connect successed`，执行 `ifconfig` 可查看 `b0` 的 IP。详细说明见 [`src/net/README.md`](src/net/README.md)。
 
 ## rt-claw
 
@@ -51,8 +87,7 @@ third_party/rt-claw-port-sf32    # 可复用 SF32/RT-Thread/SDK 适配
 src/rtclaw                       # 本项目 board 注入（b0、prefdb、PSRAM、GPIO）
 ```
 
-`src/ui_bridge` 和 `src/gui_apps/chat` 是 UI 层；`src/net/bt_pan.c` 是项目网络服务。
-完整说明见 `docs/rt-claw-port-layout.md`。
+`src/ui_bridge` 和 `src/gui_apps/chat` 是 UI 层，`src/net/bt_pan.c` 是项目网络服务。
 
 常用串口命令：
 
@@ -72,18 +107,16 @@ claw_ui Chat
 ```
 
 > 本工程为 webclient + mbedTLS 兼容关闭了 `CONFIG_RT_USING_SAL`；BT PAN 直接使用 lwIP socket。
-> API Key/Model 保存在板级 `prefdb` FlashDB 分区，分区配置见 `src/rtclaw/README.md`。
+> API Key/Model 保存在板级 `prefdb` FlashDB 分区，分区配置见 [`src/rtclaw/README.md`](src/rtclaw/README.md)。
 
 ## 微信 ClawBot（iLink）
 
-`src/wechat/wechat_ilink.c` 实现了微信 ClawBot 扫码登录和 HTTPS 长轮询，
-手表屏幕用 LVGL RGB565 true-color canvas + qrcodegen 直接显示二维码（避开 EPIC 不支持的 1-bit QR canvas），不需要手机浏览器或公网回调。
+`src/wechat/wechat_ilink.c` 实现微信 ClawBot 扫码登录和 HTTPS 长轮询，手表屏幕用 LVGL RGB565 true-color canvas + qrcodegen 直接显示二维码，不需要手机浏览器或公网回调。
 
 - 登录后 `bot_token` 存在 `prefdb`，重启自动恢复轮询。
-- 微信文本消息走独立 `AI_CHANNEL_WECHAT` 交给 rt-claw，回复用
-  `POST /ilink/bot/sendmessage` 发回。
-- 二维码入口：主菜单“微信”、聊天页快捷指令“微信连接”，或串口
-  `claw_ui WeChat`。
+- 微信文本消息走独立 `AI_CHANNEL_WECHAT` 交给 rt-claw，回复用 `POST /ilink/bot/sendmessage` 发回。
+- 最近 10 条微信消息会同步到 Chat 界面。
+- 二维码入口：主菜单“微信”、聊天页快捷指令“微信连接”，或串口 `claw_ui WeChat`。
 
 常用串口命令：
 
@@ -96,90 +129,9 @@ wechat token
 wechat send 你好
 ```
 
-完整协议、线程模型、联调步骤和已知限制见
-[`src/wechat/README.md`](src/wechat/README.md)。
+完整协议、线程模型和联调步骤见 [`src/wechat/README.md`](src/wechat/README.md)。
 
-## 硬件需求
-
-- `sf32lb52_osptek` 开发板（含 AMOLED、触摸和 PA34 按键）
-
-## 1. 指定字体
-
-例如当 `font_name` 是 `DroidSansFallback` 时，则相当于添加了如下宏定义：
-```c
-#define FREETYPE_FONT_NAME   DroidSansFallback
-```
-
-编译时会在 `freetype` 子目录里查找以 `.ttf` 为后缀的字体文件，并将其转换为 C 文件加入编译过程：
-```python
-objs = Glob('freetype/{}.ttf'.format(font_name))
-objs = Env.FontFile(objs)
-```
-
-编译完成后，TTF 文件会被转换成 C 文件，生成于 `build_xxx_hcpu/src/resource/fonts/freetype` 目录下，文件名为 `{font_name}.c`。该 C 文件中调用了字体注册宏，将字体注册进 LVGL，从而可以在 LVGL 中使用：
-```c
-LVSF_FREETYPE_FONT_REGISTER(tiny55_full)
-```
-
-像 `FREETYPE_TINY_FONT_FULL` 这样的宏是在工程目录下的 `Kconfig.proj` 中定义的，形式如下：
-```kconfig
-config FREETYPE_TINY_FONT_FULL
-    bool
-    default y
-```
-
-## 2. 完整 `src/resource/fonts/SConscript` 实例（支持自定义多字体使用）
-
-```python
-CPPDEFINES = []
-
-font_name = ''  # 默认字体选项，根据工程目录下的 [Kconfig.proj] 中定义
-font_name2 = 'SourceHanSansCN_Normal'  # 自定义 TTF 字体文件名，需放置在 `src/resource/fonts/freetype` 目录下
-
-if GetDepend('FREETYPE_TINY_FONT_FULL'):
-    font_name = 'tiny55_full'
-elif GetDepend('FREETYPE_TINY_FONT_LITE'):
-    font_name = 'tiny55_lite'
-elif GetDepend('FREETYPE_HANSANS_FONT'):
-    font_name = 'SourceHanSansCN_Normal'
-elif GetDepend('FREETYPE_ARIAL_FONT'):
-    font_name = 'arial'
-else:
-    font_name = 'DroidSansFallback'
-
-objs = Glob('freetype/{}.ttf'.format(font_name))
-objs = Env.FontFile(objs)
-
-objs2 = Glob('freetype/{}.ttf'.format(font_name2))  # 寻找自定义字体文件
-objs += Env.FontFile(objs2)  # 将自定义 TTF 文件转为 C 文件
-```
-
-## 函数使用
-```c
-//使用默认配置font_name字体接口
-void lv_ext_set_local_font(lv_obj_t *obj, uint16_t size, lv_color_t color)
-
-//根据配置注册字体名称，使用自定义字体接口
-void lv_ext_set_font_local_by_name(lv_obj_t *obj, uint16_t size, lv_color_t color, char *fontname)
-
-```
-## 异常诊断
-在多字体使用时，ttf 文件总和可能过大，超出事先预准备的内存大小，例如以下编译报错，此时需要修改 `project/xxx_hcpu/ptab.yaml` 中字体资源分区的大小，注意修改大小需要保证前后段的地址连续，另外还需考虑不同开发板所支持的存储容量。
-
-对于该 watch 示例，ptab v3 的资源分区现在使用 `type: app`、`subtype: ex`，并通过 partition 的 `sections` 描述资源收集规则：
-
-- 图片资源分区默认收集分区名对应的 section，同时可以通过 `sections` 兼容旧工程里遗留的 `.ROM1_IMG*`、`.ROM3_IMG*` 输入 section
-- 字体资源分区通过 `sections` 收集 `lvsf_font_*` 对象中的 `.rodata*` 等输入 section
-
-资源 bin 文件名仍按分区名生成，但链接与切包不再依赖固定的 `.rom2/.rom3` MEMORY 布局。
-```
-region'ROM' overflowed by 7880732 bytes
-```
-## 示例输出
-
-成功运行后，开发板屏幕将显示手表主界面，包含蜂窝菜单和表盘显示。通过触摸或按键可以在不同界面间切换。
-
-## 参考文档
+## 文档
 
 - [SiFli-SDK 快速入门](https://docs.sifli.com/projects/sdk/latest/sf32lb52x/quickstart/index.html)
-- [LVGL官方文档](https://docs.lvgl.io/8.3/)
+- [LVGL 官方文档](https://docs.lvgl.io/8.3/)
