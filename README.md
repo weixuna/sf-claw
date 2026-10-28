@@ -1,6 +1,6 @@
 # SF32LB52-SF-Claw
 
-SF32LB52 智能手表固件，基于 SiFli-SDK、RT-Thread 和 LVGL v8，集成 AI 对话、微信 ClawBot、蓝牙 PAN 联网和 HotUI 动态界面。
+本项目是基于RT-Claw进行修改，集成 AI 对话、微信 ClawBot、蓝牙 PAN 联网和 HotUI 动态界面。
 
 > 目前仅适配 `sf32lb52_osptek` 开发板。其他板级配置尚未验证，需要补充对应的 BSP 适配并上机测试后再开放。
 
@@ -29,26 +29,7 @@ scons --board=sf32lb52_osptek -j8
 
 ## 硬件需求
 
-- `sf32lb52_osptek` 开发板（AMOLED、触摸和 PA34 按键）
-
-## 板级电源
-
-电源初始化、上电和深睡下电都由 osptek BSP 负责，应用层不再直接操作电源引脚：
-
-```text
-customer/boards/sf32lb52_osptek_base/bsp_power.c
-```
-
-| 功能 | 引脚 | 开启电平 |
-|---|---|---|
-| AMOLED | PA9 | 高 |
-| TF 卡 | PA29 | 高 |
-| 传感器 LDO | PA11 | 高 |
-| 充电器 | PA20 | 低 |
-
-启动时 `BSP_IO_Init()` 调用 `BSP_Power_Up()` 完成初始化并上电；深睡/关机时由 PM 框架调用 `BSP_IO_Power_Down()` 关闭板级电源。
-
-> 当前未开启 `CONFIG_BSP_USING_PM`，因此深睡下电回调不会触发。需要低功耗时再启用 PM 并上机验证休眠、唤醒和关机流程。
+- `sf32lb52_osptek` 自制板
 
 ## HotUI
 

@@ -1,6 +1,6 @@
 # SF32LB52-SF-Claw
 
-Smartwatch firmware for the SF32LB52, built on SiFli-SDK, RT-Thread and LVGL v8. It integrates AI chat, WeChat ClawBot, Bluetooth PAN networking and HotUI dynamic interfaces.
+This project is based on RT-Claw with modifications, integrating AI chat, WeChat ClawBot, Bluetooth PAN networking and HotUI dynamic interfaces.
 
 > Only the `sf32lb52_osptek` board is supported today. Other boards have not been validated and require a matching BSP port plus on-device testing.
 
@@ -29,26 +29,7 @@ scons --board=sf32lb52_osptek -j8
 
 ## Hardware
 
-- `sf32lb52_osptek` development board (AMOLED, touch, PA34 key)
-
-## Board Power
-
-Power-pin initialization, power-on and deep-sleep power-down live in the osptek BSP. The application layer no longer touches these pins directly:
-
-```text
-customer/boards/sf32lb52_osptek_base/bsp_power.c
-```
-
-| Function | Pin | Enable level |
-|---|---|---|
-| AMOLED | PA9 | High |
-| TF card | PA29 | High |
-| Sensor LDO | PA11 | High |
-| Charger | PA20 | Low |
-
-At boot `BSP_IO_Init()` calls `BSP_Power_Up()` to configure and enable the rails. On deep sleep or shutdown the PM framework calls `BSP_IO_Power_Down()`.
-
-> `CONFIG_BSP_USING_PM` is currently disabled, so the deep-sleep power-down callback is not invoked. Enable PM and validate sleep, wake-up and shutdown on hardware before relying on it.
+- `sf32lb52_osptek` custom board
 
 ## HotUI
 
