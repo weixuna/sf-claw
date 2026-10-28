@@ -33,6 +33,21 @@ scons --board=sf32lb52_osptek -j8
 
 ## Serial API Configuration
 
+> AI chat, WeChat and NTP all need network access. The watch has no Wi-Fi, so you must first establish BT PAN through the phone's Bluetooth tethering and confirm that `b0` has an IP; otherwise API connections will fail.
+
+### 1. Connect BT PAN First
+
+```text
+bt_pan status
+bt_pan auto 1
+bt_pan connect
+ifconfig          # confirm b0 has a 192.168.x.x address
+```
+
+Enable Bluetooth tethering on the phone first. If the watch was paired before tethering was turned on, run `bt_pan connect` to start PAN again.
+
+### 2. Configure the API
+
 Configure the API over the serial console on first use or when switching models:
 
 ```text
@@ -43,7 +58,7 @@ claw_cfg model deepseek-chat
 claw_cfg save
 ```
 
-Verify the configuration:
+### 3. Verify the Configuration
 
 ```text
 claw_cfg show     # the key is masked; make sure it is not (not set)
@@ -75,7 +90,7 @@ Scripts execute on the GUI thread. A syntax error keeps the previous UI alive; a
 
 ## Bluetooth PAN
 
-`src/net/bt_pan.c` provides classic Bluetooth PAN. A successful connection creates the `b0` interface:
+`src/net/bt_pan.c` provides classic Bluetooth PAN. A successful connection creates the `b0` interface. AI chat, WeChat and NTP all require this connection first:
 
 ```text
 bt_pan status

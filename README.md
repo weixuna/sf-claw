@@ -33,6 +33,21 @@ scons --board=sf32lb52_osptek -j8
 
 ## 串口配置 API
 
+> AI 对话、微信和 NTP 都需要网络。手表没有 Wi-Fi，必须先通过手机的“蓝牙网络共享”建立 BT PAN，并确认 `b0` 拿到 IP，否则 API 会连接失败。
+
+### 1. 先连接 BT PAN
+
+```text
+bt_pan status
+bt_pan auto 1
+bt_pan connect
+ifconfig          # 确认 b0 获得 192.168.x.x 地址
+```
+
+手机需要先打开“蓝牙网络共享”。如果先配对、后开共享，执行 `bt_pan connect` 重新发起 PAN。
+
+### 2. 配置 API
+
 首次使用或更换模型时，通过串口配置 API：
 
 ```text
@@ -43,7 +58,7 @@ claw_cfg model deepseek-chat
 claw_cfg save
 ```
 
-验证配置：
+### 3. 验证配置
 
 ```text
 claw_cfg show     # key 只显示掩码，确认不是 (not set)
@@ -75,7 +90,7 @@ hot_ui demo static|timer|breakout|watch|2048
 
 ## 蓝牙 PAN
 
-`src/net/bt_pan.c` 提供经典蓝牙 PAN 接入，连接成功后生成 `b0` 网卡：
+`src/net/bt_pan.c` 提供经典蓝牙 PAN 接入，连接成功后生成 `b0` 网卡。AI 对话、微信和 NTP 都必须先建立这个连接：
 
 ```text
 bt_pan status
