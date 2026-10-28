@@ -64,7 +64,7 @@
 #define CONFIG_RTCLAW_AI_API_URL      "https://api.deepseek.com/chat/completions"
 #endif
 #ifndef CONFIG_RTCLAW_AI_MODEL
-#define CONFIG_RTCLAW_AI_MODEL        "deepseek-chat"
+#define CONFIG_RTCLAW_AI_MODEL        "deepseek-flash"
 #endif
 #ifndef CONFIG_RTCLAW_AI_MAX_TOKENS
 /* HotUI 生成的 JavaScript 会作为 tool_calls 参数返回，需要更大的输出预算。 */

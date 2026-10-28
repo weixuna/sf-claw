@@ -54,7 +54,7 @@ Configure the API over the serial console on first use or when switching models:
 claw_cfg show
 claw_cfg url https://api.deepseek.com/chat/completions
 claw_cfg key sk-your-key
-claw_cfg model deepseek-chat
+claw_cfg model deepseek-flash
 claw_cfg save
 ```
 

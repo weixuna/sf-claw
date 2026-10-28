@@ -1,4 +1,4 @@
-# SF32LB52-SF-Claw
+# SF-Claw
 
 本项目是基于RT-Claw进行修改，集成 AI 对话、微信 ClawBot、蓝牙 PAN 联网和 HotUI 动态界面。
 
@@ -54,7 +54,7 @@ ifconfig          # 确认 b0 获得 192.168.x.x 地址
 claw_cfg show
 claw_cfg url https://api.deepseek.com/chat/completions
 claw_cfg key sk-你的key
-claw_cfg model deepseek-chat
+claw_cfg model deepseek-flash
 claw_cfg save
 ```
 
