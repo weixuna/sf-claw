@@ -1,0 +1,21 @@
+from building import *
+import os
+
+cwd = GetCurrentDir()
+src = Glob('*.c')
+
+group = DefineGroup(
+    'ui_bridge',
+    src,
+    depend=['PKG_USING_LITTLEVGL2RTT'],
+    CPPPATH=[
+        cwd,
+        os.path.join(cwd, '..', '..', 'third_party',
+                     'rt-claw-port-sf32', 'include'),
+        os.path.join(cwd, '..', '..', 'third_party', 'rt-claw', 'include'),
+        os.path.join(cwd, '..', '..', 'third_party', 'rt-claw'),
+    ],
+    LOCAL_CCFLAGS=' -Wno-unused-parameter',
+)
+
+Return('group')

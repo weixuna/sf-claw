@@ -1,0 +1,137 @@
+from building import *
+import os
+
+cwd = GetCurrentDir()
+
+try:
+    root = os.path.abspath(str(RT_CLAW_ROOT))
+except NameError:
+    # Fallback for standalone/reference use: third_party/rt-claw next to us.
+    root = os.path.abspath(os.path.join(cwd, '..', 'rt-claw'))
+
+env = GetCurrentEnv()
+variant_root = os.path.abspath(Dir('.').abspath)
+
+# When the project calls us with variant_dir=..., object files must go to
+# the build tree.  Upstream rt-claw lives outside the port package, so map
+# it into a sibling variant directory instead of writing .o files back into
+# third_party/rt-claw.
+if variant_root == cwd:
+    port_prefix = cwd
+    upstream_prefix = root
+else:
+    upstream_variant = os.path.join(variant_root, 'upstream')
+    env.VariantDir(upstream_variant, root, duplicate=0)
+    port_prefix = variant_root
+    upstream_prefix = upstream_variant
+
+src = []
+
+# ---------------- upstream rt-claw core ----------------
+upstream = [
+    'claw/claw_init.c',
+    'claw/core/claw_errno.c',
+    'claw/core/service_core.c',
+    'claw/core/driver_core.c',
+    'claw/core/tool_core.c',
+    'claw/core/gateway.c',
+    'claw/services/net/net_service.c',
+    'claw/services/ai/ai_memory.c',
+    'claw/tools/claw_tools.c',
+    'claw/tools/tool_system.c',
+    'claw/tools/tool_lcd.c',
+    'vendor/lib/cjson/cJSON.c',
+]
+src += [os.path.join(upstream_prefix, p) for p in upstream]
+
+# Branding: upstream ai_engine.c hard-codes "You are rt-claw".  Compile a
+# generated copy with the product name changed; the upstream tree itself
+# remains untouched.  Generating into the build tree also keeps standalone
+# source checkouts clean.
+ai_engine_src = os.path.join(root, 'claw/services/ai/ai_engine.c')
+ai_engine_gen = os.path.join(port_prefix, 'claw_ai_engine_sf32.c')
+try:
+    with open(ai_engine_src, 'r') as f:
+        ai_engine_code = f.read()
+    ai_engine_code = ai_engine_code.replace('You are rt-claw',
+                                            'You are SF-Claw')
+    old_code = None
+    try:
+        with open(ai_engine_gen, 'r') as f:
+            old_code = f.read()
+    except IOError:
+        pass
+    if old_code != ai_engine_code:
+        with open(ai_engine_gen, 'w') as f:
+            f.write(ai_engine_code)
+    src.append(ai_engine_gen)
+except Exception as exc:
+    print('rt-claw port: branded ai_engine generation failed: %s' % exc)
+    src.append(ai_engine_src)
+
+# ---------------- SF32/RT-Thread port ----------------
+port_files = [
+    'port/claw_os_rtthread_sf32.c',
+    'port/claw_net_platform.c',
+    'port/claw_boot.c',
+    'port/claw_cfg.c',
+    'port/claw_finsh.c',
+    'port/claw_board_default.c',
+    'port/claw_system_info.c',
+]
+
+if GetDepend('RTCLAW_PORT_PSRAM'):
+    port_files.append('port/claw_mem_psram.c')
+
+if GetDepend('RTCLAW_PORT_SNTP'):
+    port_files.append('port/claw_time_sntp.c')
+
+# HTTPS through webclient; otherwise fall back to the upstream HTTP-only
+# RT-Thread socket backend.
+if GetDepend('RTCLAW_PORT_NET_WEBCLIENT'):
+    port_files.append('port/claw_net_webclient.c')
+else:
+    src.append(os.path.join(upstream_prefix, 'osal/rtthread/claw_net_rtthread.c'))
+
+# FlashDB KV with a board-provided partition; otherwise use the upstream
+# RAM-only KV backend.
+if GetDepend('RTCLAW_PORT_KV_FLASHDB'):
+    port_files.append('port/claw_kv_flashdb.c')
+else:
+    src.append(os.path.join(upstream_prefix, 'osal/rtthread/claw_kv_rtthread.c'))
+
+src += [os.path.join(port_prefix, p) for p in port_files]
+
+# Port include MUST come first: it contains claw_config.h and the
+# ai_engine.h shim that shadow upstream headers without editing them.
+CPPPATH = [
+    os.path.join(cwd, 'include'),
+    os.path.join(root, 'include'),
+    root,
+    os.path.join(root, 'vendor', 'lib', 'cjson'),
+]
+
+# Optional: a project can export RT_CLAW_BOARD_DIR for board-provided
+# headers.  The board implementation itself is compiled by the project.
+try:
+    board_dir = os.path.abspath(str(RT_CLAW_BOARD_DIR))
+    if board_dir not in CPPPATH:
+        CPPPATH.append(board_dir)
+except NameError:
+    pass
+
+CPPDEFINES = [
+    'CLAW_PLATFORM_RTTHREAD',
+]
+
+group = DefineGroup(
+    'rtclaw_port_sf32',
+    src,
+    depend=[''],
+    CPPPATH=CPPPATH,
+    CPPDEFINES=CPPDEFINES,
+    LOCAL_CCFLAGS=' -Wno-unused-parameter -Wno-sign-compare '
+                  '-Wno-missing-field-initializers',
+)
+
+Return('group')

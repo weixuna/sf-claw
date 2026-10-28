@@ -1,0 +1,55 @@
+import os
+import rtconfig
+
+# Check SDK 
+SIFLI_SDK = os.getenv('SIFLI_SDK')
+if not SIFLI_SDK:
+    print("Please run set_env.bat in root folder of SIFLI SDK to set environment.")
+    exit()
+from building import *
+
+# Prepare environment.
+PrepareEnv()
+
+################################## change rtconfig.xxx to customize build ########################################
+
+# Add bootloader project
+AddBootLoader(SIFLI_SDK,rtconfig.CHIP)
+
+# Add LCPU image for the Bluetooth controller
+AddLCPU(SIFLI_SDK,rtconfig.CHIP)
+
+# Add ACPU project
+if GetDepend('SOC_SF32LB57X') or GetDepend('SOC_SF32LB58X'):
+    acpu_proj_path = os.path.join(SIFLI_SDK, 'example/acpu/project')
+    acpu_proj_name = 'acpu'
+    AddChildProj(acpu_proj_name, acpu_proj_path, False, core="ACPU")
+
+# Set default compile options
+SifliEnv()
+
+# mbedTLS: enable the runtime allocator hooks so the watch can route TLS
+# context/buffers to the PSRAM memheap.  This is project-level CFLAGS only;
+# the SDK and its mbedTLS config files are not modified.
+rtconfig.CFLAGS += ' -DMBEDTLS_PLATFORM_MEMORY'
+# GCC 14 把 QuickJS 中 int/int32_t 指针差异当作错误，项目侧降级为警告。
+rtconfig.CFLAGS += ' -Wno-error=incompatible-pointer-types'
+if hasattr(rtconfig, 'CCFLAGS'):
+    rtconfig.CCFLAGS += ' -DMBEDTLS_PLATFORM_MEMORY'
+    rtconfig.CCFLAGS += ' -Wno-error=incompatible-pointer-types'
+if hasattr(rtconfig, 'CXXFLAGS'):
+    rtconfig.CXXFLAGS += ' -DMBEDTLS_PLATFORM_MEMORY'
+
+TARGET = rtconfig.OUTPUT_DIR + rtconfig.TARGET_NAME + '.' + rtconfig.TARGET_EXT
+# Prepare building environment
+objs = PrepareBuilding(None)
+env = GetCurrentEnv()
+
+# Build application.
+DoBuilding(TARGET, objs)
+
+# Add flash table buld.
+AddFTAB(SIFLI_SDK,rtconfig.CHIP)
+
+# Generate download .bat script
+GenDownloadScript(env)

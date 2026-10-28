@@ -1,0 +1,32 @@
+from building import *
+import os
+
+cwd = GetCurrentDir()
+port_root = os.path.join(cwd, '..', '..', 'third_party', 'rt-claw-port-sf32')
+upstream  = os.path.join(cwd, '..', '..', 'third_party', 'rt-claw')
+
+objs = SConscript(
+    os.path.join(port_root, 'SConscript'),
+    variant_dir='port',
+    duplicate=0,
+    exports={
+        'RT_CLAW_ROOT': upstream,
+        'RT_CLAW_BOARD_DIR': cwd,
+    },
+)
+
+objs += DefineGroup(
+    'rtclaw_board',
+    Glob('*.c'),
+    depend=[''],
+    CPPPATH=[
+        cwd,
+        os.path.join(cwd, '..', 'net'),
+        os.path.join(cwd, '..', 'ui_bridge'),
+        os.path.join(cwd, '..', 'wechat'),
+        os.path.join(cwd, '..', '..', 'third_party',
+                     'rt-claw-port-sf32', 'include'),
+    ],
+)
+
+Return('objs')

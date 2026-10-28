@@ -1,0 +1,25 @@
+from building import *
+import os
+
+cwd = GetCurrentDir()
+src = Glob('*.c')
+
+group = DefineGroup(
+    'wechat_ilink',
+    src,
+    depend=[''],
+    CPPPATH=[
+        cwd,
+        os.path.join(cwd, '..', 'net'),
+        os.path.join(cwd, '..', 'ui_bridge'),
+        os.path.join(cwd, '..', '..', 'third_party',
+                     'rt-claw-port-sf32', 'include'),
+        os.path.join(cwd, '..', '..', 'third_party', 'rt-claw', 'include'),
+        os.path.join(cwd, '..', '..', 'third_party', 'rt-claw'),
+        os.path.join(cwd, '..', '..', 'third_party', 'rt-claw',
+                     'vendor', 'lib', 'cjson'),
+    ],
+    LOCAL_CCFLAGS=' -Wno-unused-parameter',
+)
+
+Return('group')

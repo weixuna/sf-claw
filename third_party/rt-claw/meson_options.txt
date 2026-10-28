@@ -1,0 +1,70 @@
+option('osal', type: 'combo',
+    choices: ['rtthread', 'freertos', 'linux', 'none'],
+    value: 'none',
+    description: 'OSAL backend (none = library only, no OSAL compiled)')
+option('platform', type: 'string', value: '',
+    description: 'Target platform for full firmware build (zynq-a9)')
+option('rtthread_bsp', type: 'string', value: 'platform/vexpress-a9',
+    description: 'RT-Thread BSP directory for rtconfig.h/lwipopts.h')
+option('rtthread_cpuport', type: 'string',
+    value: 'vendor/os/rt-thread/libcpu/arm/cortex-a',
+    description: 'RT-Thread cpuport include directory')
+
+option('swarm', type: 'boolean', value: true,
+    description: 'Enable swarm service')
+option('sched', type: 'boolean', value: true,
+    description: 'Enable scheduler')
+option('skill', type: 'boolean', value: true,
+    description: 'Enable AI skill framework')
+option('tool_gpio', type: 'boolean', value: true,
+    description: 'Enable GPIO tool')
+option('tool_system', type: 'boolean', value: true,
+    description: 'Enable system info tool')
+option('tool_sched', type: 'boolean', value: true,
+    description: 'Enable scheduler tool')
+option('tool_net', type: 'boolean', value: true,
+    description: 'Enable network (HTTP) tool')
+option('tool_mouse', type: 'boolean', value: false,
+    description: 'Enable USB HID mouse tools (ESP32-S3 only)')
+option('heartbeat', type: 'boolean', value: false,
+    description: 'Enable periodic AI heartbeat (requires sched)')
+
+# AI Engine — credentials and tuning
+option('ai_api_key', type: 'string', value: '',
+    description: 'AI API key (env: RTCLAW_AI_API_KEY)')
+option('ai_api_url', type: 'string', value: '',
+    description: 'AI API URL (env: RTCLAW_AI_API_URL)')
+option('ai_model', type: 'string', value: '',
+    description: 'AI model name (env: RTCLAW_AI_MODEL)')
+option('ai_max_tokens', type: 'integer', value: 0, min: 0, max: 4096,
+    description: 'Max AI response tokens, 0=use default (env: RTCLAW_AI_MAX_TOKENS)')
+option('ai_context_size', type: 'integer', value: 0, min: 0, max: 65536,
+    description: 'AI response buffer size in bytes, 0=use default (env: RTCLAW_AI_CONTEXT_SIZE)')
+option('ai_memory_max_msgs', type: 'integer', value: 0, min: 0, max: 64,
+    description: 'Max conversation memory messages, 0=use default (env: RTCLAW_AI_MEMORY_MAX_MSGS)')
+
+# IM integrations — enable flags
+option('feishu', type: 'boolean', value: false,
+    description: 'Enable Feishu (Lark) IM integration')
+option('telegram', type: 'boolean', value: false,
+    description: 'Enable Telegram Bot integration')
+
+# Feishu (Lark) IM — credentials
+option('feishu_app_id', type: 'string', value: '',
+    description: 'Feishu App ID (env: RTCLAW_FEISHU_APP_ID)')
+option('feishu_app_secret', type: 'string', value: '',
+    description: 'Feishu App Secret (env: RTCLAW_FEISHU_APP_SECRET)')
+
+# Telegram Bot — credentials and endpoint
+option('telegram_bot_token', type: 'string', value: '',
+    description: 'Telegram Bot token (env: RTCLAW_TELEGRAM_BOT_TOKEN)')
+option('telegram_api_url', type: 'string', value: '',
+    description: 'Telegram API base URL (env: RTCLAW_TELEGRAM_API_URL)')
+
+# OTA (Over-The-Air update)
+option('ota', type: 'boolean', value: false,
+    description: 'Enable OTA firmware update service')
+option('ota_url', type: 'string', value: '',
+    description: 'OTA version check URL (env: RTCLAW_OTA_URL)')
+option('ota_check_interval_ms', type: 'integer', value: 0, min: 0,
+    description: 'OTA auto-check interval in ms, 0=manual only (env: RTCLAW_OTA_CHECK_INTERVAL_MS)')

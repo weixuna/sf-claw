@@ -1,0 +1,62 @@
+import os
+from building import *
+
+cwd = GetCurrentDir()
+project_root = os.path.normpath(os.path.join(cwd, '..', '..'))
+objs = []
+
+unit_test = os.environ.get('RTCLAW_UNIT_TEST', '0') == '1'
+
+# --- Local subdirectories (drivers, applications) ---
+for d in os.listdir(cwd):
+    path = os.path.join(cwd, d)
+    if os.path.isfile(os.path.join(path, 'SConscript')):
+        objs = objs + SConscript(os.path.join(d, 'SConscript'))
+
+# Board implementation
+board_src = [os.path.join(cwd, 'boards', 'qemu', 'board.c')]
+group = DefineGroup('Board', board_src, depend = [''],
+    CPPPATH = [os.path.join(project_root, 'include')])
+objs = objs + group
+
+# rt-claw headers (unified include/ directory)
+claw_inc = [
+    os.path.join(project_root, 'include'),
+    os.path.join(project_root, 'vendor', 'lib', 'cjson'),
+    project_root,
+]
+Env.AppendUnique(CPPPATH=[os.path.abspath(p) for p in claw_inc])
+
+# Link pre-built libraries from Meson (build/vexpress-a9-qemu/)
+build_dir = os.path.join(project_root, 'build', 'vexpress-a9-qemu')
+libs = ['rtclaw', 'osal', 'cjson']
+lib_paths = [
+    os.path.join(build_dir, 'claw'),
+    os.path.join(build_dir, 'osal'),
+    os.path.join(build_dir, 'vendor', 'lib', 'cjson'),
+]
+
+if unit_test:
+    Env.Append(CFLAGS=' -DRTCLAW_UNIT_TEST')
+    libs.append('unittest')
+    lib_paths.append(os.path.join(build_dir, 'tests', 'unit'))
+
+Env.AppendUnique(LIBPATH=lib_paths)
+
+# Use --whole-archive for rtclaw and osal so linker sections
+# (claw_services, claw_drivers, claw_tools) are retained.
+rtclaw_a = os.path.join(build_dir, 'claw', 'librtclaw.a')
+osal_a = os.path.join(build_dir, 'osal', 'libosal.a')
+Env.Append(_LIBFLAGS=' -Wl,--whole-archive'
+    + ' ' + rtclaw_a + ' ' + osal_a
+    + ' -Wl,--no-whole-archive')
+normal_libs = [l for l in libs if l not in ['rtclaw', 'osal']]
+Env.AppendUnique(LIBS=normal_libs)
+
+# Resolve circular deps between whole-archive libs and their dependencies
+Env['LINKCOM'] = Env['LINKCOM'].replace(
+    '$_LIBFLAGS',
+    '-Wl,--start-group $_LIBFLAGS -Wl,--end-group'
+)
+
+Return('objs')

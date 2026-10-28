@@ -1,0 +1,11 @@
+from building import *
+
+cwd = GetCurrentDir()
+src = Glob('*.c')
+CPPPATH = [cwd]
+
+group = DefineGroup('bt_pan', src,
+                    depend = ['BLUETOOTH', 'CFG_PAN', 'RT_USING_LWIP'],
+                    CPPPATH = CPPPATH)
+
+Return('group')

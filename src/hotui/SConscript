@@ -1,0 +1,28 @@
+from building import *
+import os
+
+cwd = GetCurrentDir()
+sdk = os.getenv('SIFLI_SDK', '')
+
+cpppath = [
+    cwd,
+    os.path.join(cwd, '..', 'ui_bridge'),
+    os.path.join(cwd, '..', '..', 'third_party',
+                 'rt-claw-port-sf32', 'include'),
+    os.path.join(cwd, '..', '..', 'third_party', 'rt-claw', 'include'),
+    os.path.join(cwd, '..', '..', 'third_party', 'rt-claw'),
+    os.path.join(cwd, '..', '..', 'third_party', 'rt-claw',
+                 'vendor', 'lib', 'cjson'),
+]
+if sdk:
+    cpppath.append(os.path.join(sdk, 'external', 'quickjs'))
+
+group = DefineGroup(
+    'hotui',
+    Glob('*.c'),
+    depend=['PKG_USING_QUICKJS', 'PKG_USING_LITTLEVGL2RTT'],
+    CPPPATH=cpppath,
+    LOCAL_CCFLAGS=' -Wno-unused-parameter',
+)
+
+Return('group')

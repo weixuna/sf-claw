@@ -1,0 +1,102 @@
+src_files = files(
+    'claw_init.c',
+    'core/claw_errno.c',
+    'core/service_core.c',
+    'core/driver_core.c',
+    'core/tool_core.c',
+    'core/gateway.c',
+    'core/scheduler.c',
+    'services/ai/ai_engine.c',
+    'services/ai/ai_memory.c',
+    'services/ai/ai_skill.c',
+    'services/im/im_util.c',
+    'services/im/feishu.c',
+    'services/im/telegram.c',
+    'services/net/net_service.c',
+    'services/swarm/swarm.c',
+    'shell/shell_commands.c',
+    'shell/shell_history.c',
+    'tools/claw_tools.c',
+    'tools/tool_gpio.c',
+    'tools/tool_lcd.c',
+    'tools/tool_sched.c',
+    'tools/tool_system.c',
+    'tools/tool_net.c',
+    'tools/tool_audio.c',
+    'tools/tool_mouse.c',
+)
+
+# Drivers (outside claw/ directory)
+# es8311_audio.c excluded: depends on esp_codec_dev managed component
+# which has transitive headers not available in Meson cross-compile.
+# It compiles via ESP-IDF CMake (platform/esp32c3/main/CMakeLists.txt).
+src_files += files(
+    '../drivers/display/espressif/ssd1306_oled.c',
+)
+
+# Feature flags
+feature_defs = platform_defs
+if get_option('swarm')
+    feature_defs += '-DCONFIG_RTCLAW_SWARM_ENABLE'
+endif
+if get_option('sched')
+    feature_defs += '-DCONFIG_RTCLAW_SCHED_ENABLE'
+endif
+if get_option('skill')
+    feature_defs += '-DCONFIG_RTCLAW_SKILL_ENABLE'
+endif
+if get_option('tool_gpio')
+    feature_defs += '-DCONFIG_RTCLAW_TOOL_GPIO'
+endif
+if get_option('tool_system')
+    feature_defs += '-DCONFIG_RTCLAW_TOOL_SYSTEM'
+endif
+if get_option('tool_sched')
+    feature_defs += '-DCONFIG_RTCLAW_TOOL_SCHED'
+endif
+if get_option('tool_net')
+    feature_defs += '-DCONFIG_RTCLAW_TOOL_NET'
+endif
+if get_option('tool_mouse')
+    feature_defs += '-DCONFIG_RTCLAW_TOOL_MOUSE'
+endif
+if get_option('heartbeat')
+    if not get_option('sched')
+        error('heartbeat requires sched=true')
+    endif
+    feature_defs += '-DCONFIG_RTCLAW_HEARTBEAT_ENABLE'
+    src_files += files('core/heartbeat.c')
+endif
+if get_option('feishu')
+    feature_defs += '-DCONFIG_RTCLAW_FEISHU_ENABLE'
+endif
+if get_option('telegram')
+    feature_defs += '-DCONFIG_RTCLAW_TELEGRAM_ENABLE'
+endif
+if get_option('ota')
+    feature_defs += '-DCONFIG_RTCLAW_OTA_ENABLE'
+endif
+# OTA sources always compiled; #ifdef CONFIG_RTCLAW_OTA_ENABLE inside
+# controls whether code is active.  On ESP-IDF the flag comes from
+# Kconfig (sdkconfig → cross.ini), on RT-Thread from Meson -Dota=true.
+src_files += files(
+    'services/ota/ota_service.c',
+    'tools/tool_ota.c',
+)
+# Non-ESP, non-Linux platforms need an OTA platform stub when ota is
+# enabled.  Linux provides its own in platform/linux/meson.build;
+# ESP-IDF provides platform/common/espressif/esp_ota.c via CMake.
+if get_option('ota') and osal_backend == 'rtthread'
+    src_files += files('../platform/linux/ota_stub.c')
+endif
+
+rtclaw_lib = static_library('rtclaw', src_files,
+    include_directories: [claw_root_inc, claw_inc] + platform_incs,
+    dependencies: [osal_dep, cjson_dep],
+    c_args: feature_defs,
+)
+
+rtclaw_dep = declare_dependency(
+    link_whole: rtclaw_lib,
+    include_directories: [claw_root_inc, claw_inc],
+)

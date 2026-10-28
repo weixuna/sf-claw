@@ -1,0 +1,46 @@
+menu "rt-claw SF32 port"
+
+config RTCLAW_PORT_NET_WEBCLIENT
+    bool "Use webclient HTTPS backend"
+    depends on PKG_USING_WEBCLIENT && PKG_USING_MBEDTLS
+    default y
+    help
+        Replace rt-claw's raw-socket HTTP backend with RT-Thread
+        webclient + mbedTLS so HTTPS LLM endpoints work.
+
+config RTCLAW_PORT_KV_FLASHDB
+    bool "Persist rt-claw KV in FlashDB"
+    depends on PKG_USING_FLASHDB
+    default y
+    help
+        Use FlashDB with the FAL partition supplied by the board adapter
+        (claw_board_ops.kv_partition).  Disable to use upstream RAM-only KV.
+
+config RTCLAW_PORT_PSRAM
+    bool "Use a PSRAM memheap for large rt-claw allocations"
+    depends on BSP_USING_PSRAM
+    default y
+
+config RTCLAW_PORT_PSRAM_SIZE
+    int "PSRAM memheap size (bytes)"
+    depends on RTCLAW_PORT_PSRAM
+    default 524288
+
+config RTCLAW_PORT_SNTP
+    bool "Sync RTC via SNTP"
+    depends on PKG_NETUTILS_NTP
+    default y
+
+config RTCLAW_AI_CONTEXT_SIZE
+    int "AI request/reply buffer size (bytes)"
+    default 8192
+
+config RTCLAW_AI_MEMORY_MAX_MSGS
+    int "Short-term conversation memory messages"
+    default 12
+
+config RTCLAW_TOOL_SYSTEM
+    bool "Enable system_info / memory_info / LTM tools"
+    default y
+
+endmenu
