@@ -4,6 +4,11 @@ project/.sconsign.dblite
 project/__pycache__/
 __pycache__/
 *.pyc
+*.o
+*.a
+*.d
+*.elf
+*.map
 
 # 本地文档不提交
 docs/
